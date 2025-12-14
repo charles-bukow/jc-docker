@@ -11,77 +11,200 @@ HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>JC Destroyer - Remote Panel</title>
+    <title>JC Destroyer - Control Panel</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            font-family: 'Courier New', monospace; 
-            background: #0a0a0a; 
-            color: #00ff00; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e4e4e7;
             padding: 20px;
-            height: 100vh;
+            min-height: 100vh;
         }
-        .container { max-width: 1200px; margin: 0 auto; }
-        h1 { color: #00ff00; margin-bottom: 20px; text-shadow: 0 0 10px #00ff00; }
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto;
+        }
+        header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        h1 { 
+            color: #f4f4f5;
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+        .subtitle {
+            color: #a1a1aa;
+            font-size: 14px;
+            margin-top: 5px;
+        }
         #terminal { 
-            background: #000; 
+            background: #0f172a;
             padding: 20px; 
-            border: 2px solid #00ff00;
-            border-radius: 5px; 
-            height: 60vh; 
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px; 
+            height: 65vh; 
             overflow-y: auto; 
             margin-bottom: 20px;
-            font-size: 14px;
-            line-height: 1.5;
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        #terminal::-webkit-scrollbar {
+            width: 8px;
+        }
+        #terminal::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        #terminal::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
         }
         .input-group {
             display: flex;
-            gap: 10px;
+            gap: 12px;
+            align-items: center;
         }
         input { 
             flex: 1;
-            padding: 15px; 
-            font-family: 'Courier New', monospace;
-            font-size: 16px; 
-            background: #1a1a1a;
-            border: 2px solid #00ff00;
-            color: #00ff00;
-            border-radius: 5px;
+            padding: 14px 16px; 
+            font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+            font-size: 14px; 
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #e4e4e7;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
         button { 
-            padding: 15px 30px; 
-            background: #00ff00; 
-            color: #000; 
+            padding: 14px 24px; 
+            background: #3b82f6;
+            color: white;
             border: none; 
             cursor: pointer;
-            font-weight: bold;
-            font-size: 16px;
-            border-radius: 5px;
-            transition: all 0.3s;
+            font-weight: 500;
+            font-size: 14px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
         }
-        button:hover { background: #00cc00; transform: scale(1.05); }
-        .output-line { margin: 2px 0; }
-        .error { color: #ff0000; }
-        .success { color: #00ff00; }
-        .warning { color: #ffff00; }
+        button:hover { 
+            background: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button.secondary {
+            background: #64748b;
+            box-shadow: 0 2px 4px rgba(100, 116, 139, 0.2);
+        }
+        button.secondary:hover {
+            background: #475569;
+            box-shadow: 0 4px 8px rgba(100, 116, 139, 0.3);
+        }
+        .output-line { 
+            margin: 3px 0;
+            padding: 2px 0;
+        }
+        .error { 
+            color: #ef4444;
+            font-weight: 500;
+        }
+        .success { 
+            color: #10b981;
+        }
+        .warning { 
+            color: #f59e0b;
+        }
+        .info {
+            color: #3b82f6;
+        }
+        .prompt {
+            color: #8b5cf6;
+            font-weight: 600;
+        }
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #64748b;
+            animation: pulse 2s infinite;
+        }
+        .status-dot.active {
+            background: #10b981;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🚀 JC Destroyer - Remote Control Panel</h1>
-        <div id="terminal">
-            <div class="success">System ready. Waiting for commands...</div>
+        <header>
+            <h1>JC Destroyer Control Panel</h1>
+            <div class="subtitle">Remote scanner management interface</div>
+        </header>
+        
+        <div class="status-bar">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Ready</span>
+            </div>
+            <div id="timestamp"></div>
         </div>
+        
+        <div id="terminal">
+            <div class="success">● System initialized and ready for commands</div>
+        </div>
+        
         <div class="input-group">
-            <input type="text" id="command" placeholder="Enter command or press Start to run scanner..." autofocus>
+            <input type="text" id="command" placeholder="Enter command..." autofocus>
             <button onclick="sendCommand()">Send</button>
-            <button onclick="startScanner()">Start Scanner</button>
+            <button class="secondary" onclick="startScanner()">Start Scanner</button>
         </div>
     </div>
     
     <script>
         const terminal = document.getElementById('terminal');
         const input = document.getElementById('command');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const timestamp = document.getElementById('timestamp');
+        
+        function updateTime() {
+            const now = new Date();
+            timestamp.textContent = now.toLocaleTimeString();
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
         
         input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendCommand();
@@ -95,11 +218,20 @@ HTML_TEMPLATE = """
             terminal.scrollTop = terminal.scrollHeight;
         }
         
+        function setStatus(text, active = false) {
+            statusText.textContent = text;
+            if (active) {
+                statusDot.classList.add('active');
+            } else {
+                statusDot.classList.remove('active');
+            }
+        }
+        
         function sendCommand() {
             const cmd = input.value.trim();
             if (!cmd) return;
             
-            addOutput('> ' + cmd, 'warning');
+            addOutput('$ ' + cmd, 'prompt');
             input.value = '';
             
             fetch('/execute', {
@@ -111,7 +243,7 @@ HTML_TEMPLATE = """
             .then(data => {
                 if (data.output) {
                     data.output.split('\\n').forEach(line => {
-                        if (line.trim()) addOutput(line);
+                        if (line.trim()) addOutput(line, 'info');
                     });
                 }
             })
@@ -119,13 +251,20 @@ HTML_TEMPLATE = """
         }
         
         function startScanner() {
-            addOutput('Starting scanner...', 'success');
+            addOutput('→ Initializing scanner...', 'info');
+            setStatus('Starting...', true);
+            
             fetch('/start', {method: 'POST'})
             .then(r => r.json())
-            .then(data => addOutput(data.status, 'success'))
-            .catch(err => addOutput('Error: ' + err, 'error'));
+            .then(data => {
+                addOutput('✓ ' + data.status, 'success');
+                setStatus('Running', true);
+            })
+            .catch(err => {
+                addOutput('✗ Error: ' + err, 'error');
+                setStatus('Error', false);
+            });
             
-            // Poll for output
             pollOutput();
         }
         
@@ -140,6 +279,8 @@ HTML_TEMPLATE = """
                 }
                 if (data.running) {
                     setTimeout(pollOutput, 1000);
+                } else {
+                    setStatus('Ready', false);
                 }
             });
         }
@@ -197,7 +338,7 @@ def execute():
 @app.route('/output')
 def get_output():
     global output_buffer, process
-    output = '\\n'.join(output_buffer[-50:])  # Last 50 lines
+    output = '\\n'.join(output_buffer[-50:])
     output_buffer = []
     running = process is not None and process.poll() is None
     return jsonify({'output': output, 'running': running})
