@@ -1,11 +1,106 @@
-from flask import Flask, render_template_string, request, jsonify, Response
+from flask import Flask, render_template_string, request, jsonify, Response, session, redirect, url_for
 import subprocess
 import threading
 import queue
 import sys
 from io import StringIO
+from functools import wraps
 
 app = Flask(__name__)
+app.secret_key = 'mikmc2025'
+
+# Password
+PASSWORD = 'destroyer2025'
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('logged_in'):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+LOGIN_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login - JC Destroyer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .login-box {
+            background: #0f172a;
+            padding: 40px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 400px;
+        }
+        h2 {
+            color: #f4f4f5;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #e4e4e7;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .error {
+            color: #ef4444;
+            font-size: 13px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h2>🔒 JC Destroyer</h2>
+        {% if error %}
+        <div class="error">{{ error }}</div>
+        {% endif %}
+        <form method="POST">
+            <input type="password" name="password" placeholder="Enter password" autofocus required>
+            <button type="submit">Login</button>
+        </form>
+    </div>
+</body>
+</html>
+"""
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -29,6 +124,9 @@ HTML_TEMPLATE = """
             margin-bottom: 30px;
             padding-bottom: 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         h1 { 
             color: #f4f4f5;
@@ -40,6 +138,18 @@ HTML_TEMPLATE = """
             color: #a1a1aa;
             font-size: 14px;
             margin-top: 5px;
+        }
+        .logout-btn {
+            padding: 8px 16px;
+            background: #64748b;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .logout-btn:hover {
+            background: #475569;
         }
         #terminal { 
             background: #0f172a;
@@ -169,8 +279,11 @@ HTML_TEMPLATE = """
 <body>
     <div class="container">
         <header>
-            <h1>JC Destroyer Control Panel</h1>
-            <div class="subtitle">Remote scanner management interface</div>
+            <div>
+                <h1>JC Destroyer Control Panel</h1>
+                <div class="subtitle">Remote scanner management interface</div>
+            </div>
+            <a href="/logout" class="logout-btn">Logout</a>
         </header>
         
         <div class="status-bar">
@@ -292,11 +405,27 @@ HTML_TEMPLATE = """
 process = None
 output_buffer = []
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        if request.form.get('password') == PASSWORD:
+            session['logged_in'] = True
+            return redirect(url_for('index'))
+        return render_template_string(LOGIN_TEMPLATE, error='Invalid password')
+    return render_template_string(LOGIN_TEMPLATE)
+
+@app.route('/logout')
+def logout():
+    session.pop('logged_in', None)
+    return redirect(url_for('login'))
+
 @app.route('/')
+@login_required
 def index():
     return render_template_string(HTML_TEMPLATE)
 
 @app.route('/start', methods=['POST'])
+@login_required
 def start():
     global process, output_buffer
     output_buffer = []
@@ -321,13 +450,14 @@ def start():
         return jsonify({'status': f'Error: {str(e)}'})
 
 @app.route('/execute', methods=['POST'])
+@login_required
 def execute():
     global process
     command = request.json.get('command', '')
     
     if process and process.poll() is None:
         try:
-            process.stdin.write(command + '\\n')
+            process.stdin.write(command + '\n')
             process.stdin.flush()
             return jsonify({'output': f'Command sent: {command}'})
         except:
@@ -336,9 +466,10 @@ def execute():
         return jsonify({'output': 'No active process. Click Start Scanner first.'})
 
 @app.route('/output')
+@login_required
 def get_output():
     global output_buffer, process
-    output = '\\n'.join(output_buffer[-50:])
+    output = '\n'.join(output_buffer[-50:])
     output_buffer = []
     running = process is not None and process.poll() is None
     return jsonify({'output': output, 'running': running})
